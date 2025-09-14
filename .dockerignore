@@ -1,0 +1,30 @@
+# flyctl launch added from .gitignore
+# Binaries
+**/personal-assistant-backend
+**/*.exe
+**/*.exe~
+**/*.dll
+**/*.so
+**/*.dylib
+
+# Test binaries
+**/*.test
+
+# Output of `go build`
+tmp
+**/*.out
+
+# Air tmp dir
+tmp/personal-assistant-backend
+
+# IDE/editor junk
+**/.vscode
+**/.idea
+**/.DS_Store
+
+# Logs
+**/*.log
+
+# Dependency vendoring (if ever used)
+**/vendor
+fly.toml
