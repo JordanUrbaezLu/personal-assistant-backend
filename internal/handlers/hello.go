@@ -13,6 +13,6 @@ func HelloHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Hello, " + name + "!",
+		"message": "Hello, " + name + "!!!",
 	})
 }
