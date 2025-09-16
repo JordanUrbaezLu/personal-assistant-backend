@@ -1,16 +1,67 @@
 package main
 
 import (
+	"database/sql"
+	"log"
+	"os"
+
 	"github.com/gin-gonic/gin"
+	"personal-assistant-backend/internal/config"
 	"personal-assistant-backend/internal/handlers"
+	"personal-assistant-backend/internal/middleware"
+
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 func main() {
+	// Load .env from module root
+	config.Load(".env")
+	log.Println("✅ .env file loaded")
+
+	// Database connection
+	dsn := os.Getenv("USERS_DATABASE_URL")
+	if dsn == "" {
+		log.Fatal("❌ USERS_DATABASE_URL not set")
+	}
+
+	db, err := sql.Open("pgx", dsn)
+	if err != nil {
+		log.Fatal("❌ Failed to open DB:", err)
+	}
+	defer db.Close()
+
+	if err := db.Ping(); err != nil {
+		log.Fatal("❌ Failed to ping DB:", err)
+	}
+	log.Println("✅ Connected to database")
+
+	// API Key
+	apiKey := os.Getenv("API_KEY")
+	if apiKey == "" {
+		log.Fatal("❌ API_KEY not set")
+	}
+
+	// Setup Gin
 	r := gin.Default()
 
-	// Register routes
-	r.GET("/hello", handlers.HelloHandler)
+	// Apply API key middleware globally
+	r.Use(middleware.APIKeyAuthMiddleware(apiKey))
 
-	// Run server
-	r.Run(":8080")
+	// Handlers needing DB
+	auth := handlers.NewAuthHandler(db)
+
+	// Routes
+	r.GET("/hello", handlers.HelloHandler)
+	r.POST("/signup", auth.Signup)
+
+	// Configurable port (default 8080)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	log.Printf("🚀 Server running on :%s\n", port)
+	if err := r.Run(":" + port); err != nil {
+		log.Fatal("❌ Failed to start server:", err)
+	}
 }
