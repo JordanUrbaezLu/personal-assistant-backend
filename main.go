@@ -54,14 +54,5 @@ func main() {
 	r.GET("/hello", handlers.HelloHandler)
 	r.POST("/signup", auth.Signup)
 
-	// Configurable port (default 8080)
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
-
-	log.Printf("🚀 Server running on :%s\n", port)
-	if err := r.Run(":" + port); err != nil {
-		log.Fatal("❌ Failed to start server:", err)
-	}
+	r.Run(":8080")
 }
