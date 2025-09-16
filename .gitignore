@@ -26,3 +26,5 @@ personal-assistant-backend
 
 # Dependency vendoring (if ever used)
 vendor/
+
+.env
