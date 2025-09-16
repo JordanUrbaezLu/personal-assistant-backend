@@ -14,9 +14,13 @@ import (
 )
 
 func main() {
-	// Load .env from module root
-	config.Load(".env")
-	log.Println("✅ .env file loaded")
+	// Only load .env in local dev (Fly sets secrets via env)
+	if os.Getenv("FLY_APP_NAME") == "" {
+		config.Load(".env")
+		log.Println("✅ .env file loaded (local dev)")
+	} else {
+		log.Println("ℹ️ Running in Fly — using flyctl secrets")
+	}
 
 	// Database connection
 	dsn := os.Getenv("USERS_DATABASE_URL")
@@ -54,5 +58,9 @@ func main() {
 	r.GET("/hello", handlers.HelloHandler)
 	r.POST("/signup", auth.Signup)
 
-	r.Run(":8080")
+	// Run server
+	log.Println("🚀 Server running on :8080")
+	if err := r.Run(":8080"); err != nil {
+		log.Fatal("❌ Failed to start server:", err)
+	}
 }
