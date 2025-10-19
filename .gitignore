@@ -28,3 +28,5 @@ personal-assistant-backend
 vendor/
 
 .env
+
+.notes
