@@ -30,6 +30,7 @@ import (
 
 // @host localhost:8080
 // @BasePath /
+// @schemes http https
 
 // @securityDefinitions.apikey BearerAuth
 // @in header
@@ -74,27 +75,28 @@ func main() {
 	if isLocal {
 		r.Use(func(c *gin.Context) {
 			path := c.Request.URL.Path
-	
-			// ✅ Allow all Swagger UI assets and /hello without API key
+			// ✅ Allow Swagger & hello without API key
 			if path == "/hello" || 
-			   path == "/swagger" || 
-			   path == "/swagger/" || 
-			   len(path) >= 9 && path[:9] == "/swagger/" {
+				path == "/swagger" || 
+				path == "/swagger/" || 
+				len(path) >= 9 && path[:9] == "/swagger/" {
 				c.Next()
 				return
 			}
-	
 			middleware.APIKeyAuthMiddleware(apiKey)(c)
 		})
-		log.Println("🧩 Running in local mode: Swagger and /hello are open (no API key needed)")
+		log.Println("🧩 Local mode: Swagger + /hello are open (no API key needed)")
 	} else {
 		r.Use(middleware.APIKeyAuthMiddleware(apiKey))
-		log.Println("🔒 Running in production: All routes protected by API key")
+		log.Println("🔒 Production mode: All routes protected by API key")
 	}
-	
 
-	// Swagger route — accessible at /swagger/index.html
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("http://localhost:8080/swagger/doc.json")))
+	// ✅ Swagger route — auto URL depending on env
+	swaggerURL := "http://localhost:8080/swagger/doc.json"
+	if !isLocal {
+		swaggerURL = "https://personal-assistant-backend-fly.fly.dev/swagger/doc.json"
+	}
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL(swaggerURL)))
 
 	// Handlers needing DB
 	auth := handlers.NewAuthHandler(db)
@@ -104,7 +106,7 @@ func main() {
 	r.POST("/login", auth.Login)
 	r.POST("/token/refresh", auth.Refresh)
 
-	// Protected routes (JWT required on top of API key)
+	// Protected routes
 	authGroup := r.Group("/")
 	authGroup.Use(middleware.JWTAuthMiddleware())
 	authGroup.GET("/me", auth.Me)

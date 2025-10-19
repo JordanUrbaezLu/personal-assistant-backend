@@ -395,7 +395,7 @@ var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "localhost:8080",
 	BasePath:         "/",
-	Schemes:          []string{},
+	Schemes:          []string{"http", "https"},
 	Title:            "Personal Assistant Backend API",
 	Description:      "REST API for authentication, user management, and assistant features.",
 	InfoInstanceName: "swagger",

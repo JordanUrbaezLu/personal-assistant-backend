@@ -252,6 +252,9 @@ paths:
       summary: Refresh access token
       tags:
       - Auth
+schemes:
+- http
+- https
 securityDefinitions:
   BearerAuth:
     in: header
