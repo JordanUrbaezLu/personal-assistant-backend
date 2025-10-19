@@ -6,16 +6,38 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+
 	"personal-assistant-backend/internal/config"
 	"personal-assistant-backend/internal/handlers"
 	"personal-assistant-backend/internal/middleware"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+	_ "personal-assistant-backend/docs" // 👈 Import generated Swagger docs
 )
 
+// @title Personal Assistant Backend API
+// @version 1.0
+// @description REST API for authentication, user management, and assistant features.
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name Jordan Urbaez
+// @contact.email jordana.urbaez@gmail.com
+
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+
+// @host localhost:8080
+// @BasePath /
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 func main() {
 	// Only load .env in local dev (Fly sets secrets via env)
-	if os.Getenv("FLY_APP_NAME") == "" {
+	isLocal := os.Getenv("FLY_APP_NAME") == ""
+	if isLocal {
 		config.Load(".env")
 		log.Println("✅ .env file loaded (local dev)")
 	} else {
@@ -48,8 +70,31 @@ func main() {
 	// Setup Gin
 	r := gin.Default()
 
-	// Apply API key middleware globally (all routes require API key)
-	r.Use(middleware.APIKeyAuthMiddleware(apiKey))
+	// ✅ Conditionally apply middleware
+	if isLocal {
+		r.Use(func(c *gin.Context) {
+			path := c.Request.URL.Path
+	
+			// ✅ Allow all Swagger UI assets and /hello without API key
+			if path == "/hello" || 
+			   path == "/swagger" || 
+			   path == "/swagger/" || 
+			   len(path) >= 9 && path[:9] == "/swagger/" {
+				c.Next()
+				return
+			}
+	
+			middleware.APIKeyAuthMiddleware(apiKey)(c)
+		})
+		log.Println("🧩 Running in local mode: Swagger and /hello are open (no API key needed)")
+	} else {
+		r.Use(middleware.APIKeyAuthMiddleware(apiKey))
+		log.Println("🔒 Running in production: All routes protected by API key")
+	}
+	
+
+	// Swagger route — accessible at /swagger/index.html
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("http://localhost:8080/swagger/doc.json")))
 
 	// Handlers needing DB
 	auth := handlers.NewAuthHandler(db)

@@ -1,0 +1,260 @@
+basePath: /
+definitions:
+  handlers.RefreshRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  handlers.loginReq:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  handlers.signupReq:
+    properties:
+      email:
+        type: string
+      first_name:
+        type: string
+      last_name:
+        type: string
+      password:
+        maxLength: 128
+        minLength: 8
+        type: string
+      phone_number:
+        type: string
+    required:
+    - email
+    - first_name
+    - last_name
+    - password
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: jordana.urbaez@gmail.com
+    name: Jordan Urbaez
+  description: REST API for authentication, user management, and assistant features.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Personal Assistant Backend API
+  version: "1.0"
+paths:
+  /hello:
+    get:
+      description: Returns a greeting message. If no name is provided, defaults to
+        "World".
+      parameters:
+      - description: Name to greet
+        in: query
+        name: name
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Greeting message
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Simple hello endpoint
+      tags:
+      - General
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a user with email and password, returning JWT access
+        and refresh tokens.
+      parameters:
+      - description: User login credentials
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.loginReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Access and refresh tokens
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid payload
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Invalid credentials
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Database or token generation error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Login a user
+      tags:
+      - Auth
+  /me:
+    get:
+      description: Returns the authenticated user's ID extracted from the JWT access
+        token.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User ID returned successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized or missing user ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get current user info
+      tags:
+      - Auth
+  /signup:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new user account and stores it in PostgreSQL.
+      parameters:
+      - description: User signup data
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.signupReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid payload
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Email already exists
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Database or hashing error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Register a new user
+      tags:
+      - Auth
+  /test:
+    get:
+      consumes:
+      - application/json
+      description: Returns a greeting using query parameters `first` and `last`.
+      parameters:
+      - description: First name
+        in: query
+        name: first
+        required: true
+        type: string
+      - description: Last name
+        in: query
+        name: last
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successful greeting
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Missing first or last name
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Test API to greet user
+      tags:
+      - Test
+  /token/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Takes a valid refresh token and issues a new access token. The
+        refresh token remains the same.
+      parameters:
+      - description: Refresh token payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.RefreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: New access token issued
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid payload
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Invalid or expired refresh token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to generate new access token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Refresh access token
+      tags:
+      - Auth
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
