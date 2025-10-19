@@ -48,15 +48,25 @@ func main() {
 	// Setup Gin
 	r := gin.Default()
 
-	// Apply API key middleware globally
+	// Apply API key middleware globally (all routes require API key)
 	r.Use(middleware.APIKeyAuthMiddleware(apiKey))
 
 	// Handlers needing DB
 	auth := handlers.NewAuthHandler(db)
 
-	// Routes
-	r.GET("/hello", handlers.HelloHandler)
+	// Public routes
 	r.POST("/signup", auth.Signup)
+	r.POST("/login", auth.Login)
+	r.POST("/token/refresh", auth.Refresh)
+
+	// Protected routes (JWT required on top of API key)
+	authGroup := r.Group("/")
+	authGroup.Use(middleware.JWTAuthMiddleware())
+	authGroup.GET("/me", auth.Me)
+
+	// Misc routes
+	r.GET("/hello", handlers.HelloHandler)
+	r.GET("/test", handlers.TestHandler)
 
 	// Run server
 	log.Println("🚀 Server running on :8080")
