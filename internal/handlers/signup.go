@@ -9,6 +9,18 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// Signup godoc
+// @Summary Register a new user
+// @Description Creates a new user account and stores it in PostgreSQL.
+// @Tags Auth
+// @Accept  json
+// @Produce  json
+// @Param payload body signupReq true "User signup data"
+// @Success 201 {object} map[string]interface{} "User created successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid payload"
+// @Failure 409 {object} map[string]interface{} "Email already exists"
+// @Failure 500 {object} map[string]interface{} "Database or hashing error"
+// @Router /signup [post]
 func (h *AuthHandler) Signup(c *gin.Context) {
 	var req signupReq
 	if err := c.ShouldBindJSON(&req); err != nil {

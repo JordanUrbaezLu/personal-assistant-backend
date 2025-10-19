@@ -35,3 +35,8 @@ type Claims struct {
 	UserID string `json:"sub"`
 	jwt.RegisteredClaims
 }
+
+// RefreshRequest represents the expected JSON body for /token/refresh
+type RefreshRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}

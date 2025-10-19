@@ -8,6 +8,18 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// Login godoc
+// @Summary Login a user
+// @Description Authenticates a user with email and password, returning JWT access and refresh tokens.
+// @Tags Auth
+// @Accept  json
+// @Produce  json
+// @Param payload body loginReq true "User login credentials"
+// @Success 200 {object} map[string]string "Access and refresh tokens"
+// @Failure 400 {object} map[string]string "Invalid payload"
+// @Failure 401 {object} map[string]string "Invalid credentials"
+// @Failure 500 {object} map[string]string "Database or token generation error"
+// @Router /login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req loginReq
 	if err := c.ShouldBindJSON(&req); err != nil {
