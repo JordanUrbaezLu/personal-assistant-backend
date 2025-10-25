@@ -6,16 +6,17 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
+	"personal-assistant-backend/internal/models"
 )
 
 // Login godoc
 // @Summary Login a user
-// @Description Authenticates a user with email and password, returning JWT access and refresh tokens.
+// @Description Authenticates a user with email and password, returning account info with JWT access and refresh tokens.
 // @Tags Auth
 // @Accept  json
 // @Produce  json
 // @Param payload body loginReq true "User login credentials"
-// @Success 200 {object} map[string]string "Access and refresh tokens"
+// @Success 200 {object} models.AuthWithTokensResponse "Authenticated user with access and refresh tokens"
 // @Failure 400 {object} map[string]string "Invalid payload"
 // @Failure 401 {object} map[string]string "Invalid credentials"
 // @Failure 500 {object} map[string]string "Database or token generation error"
@@ -30,11 +31,18 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	var userID, hash string
-	err := h.db.QueryRow(
-		`SELECT id, password_hash FROM users WHERE email=$1`,
-		req.Email,
-	).Scan(&userID, &hash)
+	var user models.User
+	var hash string
+
+	// Fetch user from DB
+	err := h.db.QueryRow(`
+		SELECT id, first_name, last_name, email, phone_number, password_hash, created_at
+		FROM users WHERE email=$1
+	`, req.Email).Scan(
+		&user.ID, &user.FirstName, &user.LastName,
+		&user.Email, &user.PhoneNumber, &hash, &user.CreatedAt,
+	)
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
@@ -51,20 +59,24 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	// Generate tokens
-	accessToken, err := generateJWT(userID, getAccessTTL())
+	accessToken, err := generateJWT(user.ID, getAccessTTL())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create access token"})
 		return
 	}
 
-	refreshToken, err := generateJWT(userID, getRefreshTTL())
+	refreshToken, err := generateJWT(user.ID, getRefreshTTL())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create refresh token"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"access_token":  accessToken,
-		"refresh_token": refreshToken,
-	})
+	// Build response
+	response := models.AuthWithTokensResponse{
+		User:         user,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}
+
+	c.JSON(http.StatusOK, response)
 }

@@ -23,6 +23,49 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/auth": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Validates the user's access token and returns their account information if still logged in. This endpoint does not issue new tokens.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Check user session (Auth validation)",
+                "responses": {
+                    "200": {
+                        "description": "Valid token and user info (no tokens returned)",
+                        "schema": {
+                            "$ref": "#/definitions/models.AuthCheckResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid or expired token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Database error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/hello": {
             "get": {
                 "description": "Returns a greeting message. If no name is provided, defaults to \"World\".",
@@ -30,7 +73,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "General"
+                    "Misc"
                 ],
                 "summary": "Simple hello endpoint",
                 "parameters": [
@@ -56,7 +99,7 @@ const docTemplate = `{
         },
         "/login": {
             "post": {
-                "description": "Authenticates a user with email and password, returning JWT access and refresh tokens.",
+                "description": "Authenticates a user with email and password, returning account info with JWT access and refresh tokens.",
                 "consumes": [
                     "application/json"
                 ],
@@ -80,12 +123,9 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Access and refresh tokens",
+                        "description": "Authenticated user with access and refresh tokens",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/models.AuthWithTokensResponse"
                         }
                     },
                     "400": {
@@ -130,7 +170,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Auth"
+                    "Misc"
                 ],
                 "summary": "Get current user info",
                 "responses": {
@@ -155,7 +195,7 @@ const docTemplate = `{
         },
         "/signup": {
             "post": {
-                "description": "Creates a new user account and stores it in PostgreSQL.",
+                "description": "Creates a new user account in PostgreSQL and returns account info with JWT access + refresh tokens.",
                 "consumes": [
                     "application/json"
                 ],
@@ -179,31 +219,36 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "User created successfully",
+                        "description": "User created successfully with access and refresh tokens",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/models.AuthWithTokensResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid payload",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "409": {
                         "description": "Email already exists",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "500": {
                         "description": "Database or hashing error",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -219,7 +264,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Test"
+                    "Misc"
                 ],
                 "summary": "Test API to greet user",
                 "parameters": [
@@ -379,6 +424,51 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "models.AuthCheckResponse": {
+            "type": "object",
+            "properties": {
+                "user": {
+                    "$ref": "#/definitions/models.User"
+                }
+            }
+        },
+        "models.AuthWithTokensResponse": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "refresh_token": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/models.User"
+                }
+            }
+        },
+        "models.User": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "phone_number": {
+                    "type": "string"
+                }
+            }
         }
     },
     "securityDefinitions": {
@@ -393,7 +483,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:8080",
+	Host:             "",
 	BasePath:         "/",
 	Schemes:          []string{"http", "https"},
 	Title:            "Personal Assistant Backend API",

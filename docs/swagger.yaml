@@ -37,7 +37,35 @@ definitions:
     - last_name
     - password
     type: object
-host: localhost:8080
+  models.AuthCheckResponse:
+    properties:
+      user:
+        $ref: '#/definitions/models.User'
+    type: object
+  models.AuthWithTokensResponse:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+      user:
+        $ref: '#/definitions/models.User'
+    type: object
+  models.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      first_name:
+        type: string
+      id:
+        type: string
+      last_name:
+        type: string
+      phone_number:
+        type: string
+    type: object
 info:
   contact:
     email: jordana.urbaez@gmail.com
@@ -50,6 +78,34 @@ info:
   title: Personal Assistant Backend API
   version: "1.0"
 paths:
+  /auth:
+    get:
+      description: Validates the user's access token and returns their account information
+        if still logged in. This endpoint does not issue new tokens.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Valid token and user info (no tokens returned)
+          schema:
+            $ref: '#/definitions/models.AuthCheckResponse'
+        "401":
+          description: Invalid or expired token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Database error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Check user session (Auth validation)
+      tags:
+      - Auth
   /hello:
     get:
       description: Returns a greeting message. If no name is provided, defaults to
@@ -70,13 +126,13 @@ paths:
             type: object
       summary: Simple hello endpoint
       tags:
-      - General
+      - Misc
   /login:
     post:
       consumes:
       - application/json
-      description: Authenticates a user with email and password, returning JWT access
-        and refresh tokens.
+      description: Authenticates a user with email and password, returning account
+        info with JWT access and refresh tokens.
       parameters:
       - description: User login credentials
         in: body
@@ -88,11 +144,9 @@ paths:
       - application/json
       responses:
         "200":
-          description: Access and refresh tokens
+          description: Authenticated user with access and refresh tokens
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.AuthWithTokensResponse'
         "400":
           description: Invalid payload
           schema:
@@ -136,12 +190,13 @@ paths:
       - BearerAuth: []
       summary: Get current user info
       tags:
-      - Auth
+      - Misc
   /signup:
     post:
       consumes:
       - application/json
-      description: Creates a new user account and stores it in PostgreSQL.
+      description: Creates a new user account in PostgreSQL and returns account info
+        with JWT access + refresh tokens.
       parameters:
       - description: User signup data
         in: body
@@ -153,24 +208,26 @@ paths:
       - application/json
       responses:
         "201":
-          description: User created successfully
+          description: User created successfully with access and refresh tokens
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/models.AuthWithTokensResponse'
         "400":
           description: Invalid payload
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
         "409":
           description: Email already exists
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
         "500":
           description: Database or hashing error
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
       summary: Register a new user
       tags:
@@ -208,7 +265,7 @@ paths:
             type: object
       summary: Test API to greet user
       tags:
-      - Test
+      - Misc
   /token/refresh:
     post:
       consumes:
