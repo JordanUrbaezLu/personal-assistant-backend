@@ -9,7 +9,7 @@ import (
 // TestHandler godoc
 // @Summary Test API to greet user
 // @Description Returns a greeting using query parameters `first` and `last`.
-// @Tags Test
+// @Tags Misc
 // @Accept  json
 // @Produce  json
 // @Param first query string true "First name"

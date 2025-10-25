@@ -3,23 +3,25 @@ package handlers
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgconn"
 	"golang.org/x/crypto/bcrypt"
+	"personal-assistant-backend/internal/models"
 )
 
 // Signup godoc
 // @Summary Register a new user
-// @Description Creates a new user account and stores it in PostgreSQL.
+// @Description Creates a new user account in PostgreSQL and returns account info with JWT access + refresh tokens.
 // @Tags Auth
 // @Accept  json
 // @Produce  json
 // @Param payload body signupReq true "User signup data"
-// @Success 201 {object} map[string]interface{} "User created successfully"
-// @Failure 400 {object} map[string]interface{} "Invalid payload"
-// @Failure 409 {object} map[string]interface{} "Email already exists"
-// @Failure 500 {object} map[string]interface{} "Database or hashing error"
+// @Success 201 {object} models.AuthWithTokensResponse "User created successfully with access and refresh tokens"
+// @Failure 400 {object} map[string]string "Invalid payload"
+// @Failure 409 {object} map[string]string "Email already exists"
+// @Failure 500 {object} map[string]string "Database or hashing error"
 // @Router /signup [post]
 func (h *AuthHandler) Signup(c *gin.Context) {
 	var req signupReq
@@ -39,12 +41,13 @@ func (h *AuthHandler) Signup(c *gin.Context) {
 	}
 
 	// Insert into DB
-	var userID string
+	var user models.User
 	err = h.db.QueryRow(`
-		INSERT INTO users (first_name, last_name, email, password_hash, phone_number)
-		VALUES ($1, $2, $3, $4, $5)
-		RETURNING id
-	`, req.FirstName, req.LastName, req.Email, string(hash), req.PhoneNumber).Scan(&userID)
+		INSERT INTO users (first_name, last_name, email, password_hash, phone_number, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id, created_at
+	`, req.FirstName, req.LastName, req.Email, string(hash), req.PhoneNumber, time.Now()).
+		Scan(&user.ID, &user.CreatedAt)
 
 	if err != nil {
 		var pgErr *pgconn.PgError
@@ -59,12 +62,31 @@ func (h *AuthHandler) Signup(c *gin.Context) {
 		return
 	}
 
-	// Response
-	c.JSON(http.StatusCreated, gin.H{
-		"user_id":      userID,
-		"first_name":   req.FirstName,
-		"last_name":    req.LastName,
-		"email":        req.Email,
-		"phone_number": req.PhoneNumber,
-	})
+	// Generate tokens
+	accessToken, err := generateJWT(user.ID, getAccessTTL())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create access token"})
+		return
+	}
+
+	refreshToken, err := generateJWT(user.ID, getRefreshTTL())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create refresh token"})
+		return
+	}
+
+	// Populate user struct
+	user.FirstName = req.FirstName
+	user.LastName = req.LastName
+	user.Email = req.Email
+	user.PhoneNumber = req.PhoneNumber
+
+	// Build and return typed response
+	response := models.AuthWithTokensResponse{
+		User:         user,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}
+
+	c.JSON(http.StatusCreated, response)
 }

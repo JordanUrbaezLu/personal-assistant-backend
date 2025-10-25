@@ -9,7 +9,7 @@ import (
 // HelloHandler godoc
 // @Summary Simple hello endpoint
 // @Description Returns a greeting message. If no name is provided, defaults to "World".
-// @Tags General
+// @Tags Misc
 // @Produce  json
 // @Param name query string false "Name to greet"
 // @Success 200 {object} map[string]string "Greeting message"

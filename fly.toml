@@ -1,12 +1,19 @@
-# fly.toml app configuration file generated for personal-assistant-backend-fly on 2025-09-13T22:44:25-07:00
+# fly.toml app configuration file for personal-assistant-backend-fly
+# Generated and enhanced for automatic Swagger updates
 #
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+# See https://fly.io/docs/reference/configuration/ for full options
 #
 
 app = 'personal-assistant-backend-fly'
 primary_region = 'sjc'
 
 [build]
+  # Ensure swag CLI is available inside your image (if not already, add to Dockerfile)
+  # Example: RUN go install github.com/swaggo/swag/cmd/swag@latest
+
+[deploy]
+  # ✅ Automatically regenerate Swagger docs before deployment
+  release_command = "swag init -g main.go -o docs"
 
 [http_service]
   internal_port = 8080

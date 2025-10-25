@@ -9,7 +9,7 @@ import (
 // Me godoc
 // @Summary Get current user info
 // @Description Returns the authenticated user's ID extracted from the JWT access token.
-// @Tags Auth
+// @Tags Misc
 // @Security BearerAuth
 // @Produce  json
 // @Success 200 {object} map[string]interface{} "User ID returned successfully"
