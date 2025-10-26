@@ -11,15 +11,16 @@ import (
 
 	"personal-assistant-backend/internal/config"
 	"personal-assistant-backend/internal/handlers"
+	chatHandler "personal-assistant-backend/internal/handlers/chat"
 	"personal-assistant-backend/internal/middleware"
-	"personal-assistant-backend/docs" // ✅ Import generated Swagger docs
+	"personal-assistant-backend/docs" // ✅ Swagger docs
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 // @title Personal Assistant Backend API
 // @version 1.0
-// @description REST API for authentication, user management, and assistant features.
+// @description REST API for authentication, user management, and assistant chat features.
 // @termsOfService http://swagger.io/terms/
 
 // @contact.name Jordan Urbaez
@@ -35,7 +36,9 @@ import (
 // @in header
 // @name Authorization
 func main() {
-	// Load environment configuration
+	// =====================================================
+	// ⚙️ Environment Configuration
+	// =====================================================
 	isLocal := os.Getenv("FLY_APP_NAME") == ""
 	if isLocal {
 		config.Load(".env")
@@ -44,7 +47,9 @@ func main() {
 		log.Println("ℹ️ Running in Fly — using flyctl secrets")
 	}
 
-	// Database connection
+	// =====================================================
+	// 🗄️ Database Connection
+	// =====================================================
 	dsn := os.Getenv("USERS_DATABASE_URL")
 	if dsn == "" {
 		log.Fatal("❌ USERS_DATABASE_URL not set")
@@ -61,16 +66,19 @@ func main() {
 	}
 	log.Println("✅ Connected to database")
 
-	// API Key setup
+	// =====================================================
+	// 🔑 API Key
+	// =====================================================
 	apiKey := os.Getenv("API_KEY")
 	if apiKey == "" {
 		log.Fatal("❌ API_KEY not set")
 	}
 
-	// Setup Gin
+	// =====================================================
+	// 🌐 Gin Setup + Swagger Config
+	// =====================================================
 	r := gin.Default()
 
-	// Determine correct Swagger host dynamically
 	swaggerHost := "localhost:8080"
 	swaggerSchemes := []string{"http"}
 	swaggerURL := "http://localhost:8080/swagger/doc.json"
@@ -81,16 +89,17 @@ func main() {
 		swaggerURL = "https://personal-assistant-backend-fly.fly.dev/swagger/doc.json"
 	}
 
-	// ✅ Set Swagger runtime info
 	docs.SwaggerInfo.Host = swaggerHost
 	docs.SwaggerInfo.BasePath = "/"
 	docs.SwaggerInfo.Schemes = swaggerSchemes
 
-	// ✅ Conditionally apply middleware
+	// =====================================================
+	// 🧱 Middleware
+	// =====================================================
 	if isLocal {
 		r.Use(func(c *gin.Context) {
 			path := c.Request.URL.Path
-			// ✅ Allow Swagger & hello without API key
+			// Allow Swagger & /hello without API key
 			if path == "/hello" ||
 				path == "/swagger" ||
 				path == "/swagger/" ||
@@ -106,35 +115,51 @@ func main() {
 		log.Println("🔒 Production mode: All routes protected by API key")
 	}
 
-	// ✅ Swagger route — uses environment-appropriate URL
+	// =====================================================
+	// 📜 Swagger Docs Route
+	// =====================================================
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL(swaggerURL)))
 
-	// Initialize handlers
+	// =====================================================
+	// 🧩 Initialize Handlers
+	// =====================================================
 	auth := handlers.NewAuthHandler(db)
+	chats := chatHandler.NewChatHandler(db)
 
-	// ========================================
+	// =====================================================
 	// 🚪 Public Auth Routes
-	// ========================================
+	// =====================================================
 	r.POST("/signup", auth.Signup)
 	r.POST("/login", auth.Login)
 	r.POST("/token/refresh", auth.Refresh)
 
-	// ========================================
-	// 🔒 Protected Auth Routes
-	// ========================================
+	// =====================================================
+	// 🔒 Protected Routes (JWT)
+	// =====================================================
 	authGroup := r.Group("/")
 	authGroup.Use(middleware.JWTAuthMiddleware())
+
+	// --- Auth check (on app startup)
 	authGroup.GET("/auth", auth.AuthCheck)
 
-	// ========================================
+	// --- Current user info
+	authGroup.GET("/me", auth.Me)
+
+	// --- Chat routes
+	authGroup.POST("/chats", chats.CreateChat)
+	authGroup.GET("/chats", chats.ListChats)
+	authGroup.POST("/chats/:chat_id/messages", chats.SendMessage)
+	authGroup.GET("/chats/:chat_id/messages", chats.ListMessages) // ✅ New endpoint
+
+	// =====================================================
 	// 🧩 Misc Routes
-	// ========================================
+	// =====================================================
 	r.GET("/hello", handlers.HelloHandler)
 	r.GET("/test", handlers.TestHandler)
 
-	// ========================================
+	// =====================================================
 	// 🚀 Start Server
-	// ========================================
+	// =====================================================
 	log.Println("🚀 Server running on :8080")
 	if err := r.Run(":8080"); err != nil {
 		log.Fatal("❌ Failed to start server:", err)
