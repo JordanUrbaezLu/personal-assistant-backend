@@ -13,7 +13,7 @@ primary_region = 'sjc'
 
 [deploy]
   # ✅ Automatically regenerate Swagger docs before deployment
-  release_command = "swag init -g main.go -o docs"
+  # release_command = "swag init -g main.go -o docs"
 
 [http_service]
   internal_port = 8080
