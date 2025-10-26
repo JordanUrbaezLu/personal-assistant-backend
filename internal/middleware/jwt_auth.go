@@ -40,7 +40,7 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Parse and validate
+		// Parse and validate the JWT
 		token, err := jwt.ParseWithClaims(tokenStr, &handlers.Claims{}, func(token *jwt.Token) (interface{}, error) {
 			return []byte(secret), nil
 		})
@@ -66,10 +66,10 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		log.Printf("✅ Valid token for user_id=%s, expires=%v\n", claims.UserID, claims.ExpiresAt)
+		log.Printf("✅ Valid token for userID=%s, expires=%v\n", claims.UserID, claims.ExpiresAt)
 
-		// Store user ID in context
-		c.Set("user_id", claims.UserID)
+		// ✅ Store user ID in context using the same key as handlers
+		c.Set("userID", claims.UserID)
 
 		c.Next()
 	}

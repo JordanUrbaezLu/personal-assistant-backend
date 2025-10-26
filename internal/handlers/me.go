@@ -16,9 +16,9 @@ import (
 // @Failure 401 {object} map[string]string "Unauthorized or missing user ID"
 // @Router /me [get]
 func (h *AuthHandler) Me(c *gin.Context) {
-	userID, ok := c.Get("user_id")
-	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user_id not found in context"})
+	userID, ok := c.Get("userID")
+	if !ok || userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "userID not found in context"})
 		return
 	}
 
