@@ -1,29 +1,72 @@
-# fly.toml app configuration file for personal-assistant-backend-fly
-# Generated and enhanced for automatic Swagger updates
+# =========================================================
+# 🧠 personal-assistant-backend-fly
+# Production-ready Fly.io config for a multi-region Go API
+# =========================================================
+# Primary Region: SJC (San Jose, CA)
+# Secondary Region: EWR (Secaucus, NJ)
 #
-# See https://fly.io/docs/reference/configuration/ for full options
-#
+# This setup ensures:
+#  - Low latency for both US coasts
+#  - Zero cold starts
+#  - Auto-routing via Fly’s Anycast global network
+# =========================================================
 
-app = 'personal-assistant-backend-fly'
-primary_region = 'sjc'
+app = "personal-assistant-backend-fly"
+primary_region = "sjc"
 
 [build]
-  # Ensure swag CLI is available inside your image (if not already, add to Dockerfile)
-  # Example: RUN go install github.com/swaggo/swag/cmd/swag@latest
+  # Optional: Install swag CLI in Dockerfile if Swagger auto-generation is required.
+  # Example in Dockerfile:
+  # RUN go install github.com/swaggo/swag/cmd/swag@latest
 
 [deploy]
-  # ✅ Automatically regenerate Swagger docs before deployment
+  # Optionally regenerate Swagger docs before deploying.
+  # Commented out to speed up deployments.
   # release_command = "swag init -g main.go -o docs"
 
+# =========================================================
+# 🌐 HTTP Service Configuration
+# =========================================================
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = 'stop'
-  auto_start_machines = true
-  min_machines_running = 1
-  processes = ['app']
 
+  # Keep instances always running — prevents cold starts
+  auto_stop_machines = false
+  auto_start_machines = true
+
+  # Run at least one machine per region
+  min_machines_running = 2
+
+  processes = ["app"]
+
+# =========================================================
+# ⚙️ VM Resources (per machine)
+# =========================================================
 [[vm]]
-  memory = '1gb'
-  cpu_kind = 'shared'
+  memory = "1gb"
+  cpu_kind = "shared"
   cpus = 1
+
+# =========================================================
+# 🌎 Notes for Multi-Region Deployment
+# =========================================================
+# - Current Regions:
+#     - sjc (San Jose, CA)  → Primary
+#     - ewr (Secaucus, NJ) → Secondary (East Coast)
+#
+# - To add more regions:
+#     1. fly machines list
+#     2. fly machine clone <machine_id> --region <new_region>
+#
+# - To verify routing:
+#     curl -I https://personal-assistant-backend-fly.fly.dev
+#     → Look for `fly-request-id:` ****-(sjc, ewr)
+#
+# - To scale more instances per region:
+#     fly scale count app=auto
+#
+# - To remove unused or stopped machines:
+#     fly machine remove <machine_id>
+#
+# =========================================================

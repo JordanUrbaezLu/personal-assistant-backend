@@ -13,7 +13,7 @@ import (
 	"personal-assistant-backend/internal/handlers"
 	chatHandler "personal-assistant-backend/internal/handlers/chat"
 	"personal-assistant-backend/internal/middleware"
-	"personal-assistant-backend/docs" // ✅ Swagger docs
+	"personal-assistant-backend/docs"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -149,7 +149,7 @@ func main() {
 	authGroup.POST("/chats", chats.CreateChat)
 	authGroup.GET("/chats", chats.ListChats)
 	authGroup.POST("/chats/:chat_id/messages", chats.SendMessage)
-	authGroup.GET("/chats/:chat_id/messages", chats.ListMessages) // ✅ New endpoint
+	authGroup.GET("/chats/:chat_id/messages", chats.ListMessages)
 
 	// =====================================================
 	// 🧩 Misc Routes

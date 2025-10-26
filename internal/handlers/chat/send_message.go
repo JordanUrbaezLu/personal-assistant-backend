@@ -36,7 +36,7 @@ func (h *ChatHandler) SendMessage(c *gin.Context) {
 		return
 	}
 
-	// ✅ Verify chat ownership
+	// Verify chat ownership
 	var exists bool
 	err := h.DB.QueryRow(`
 		SELECT EXISTS (
@@ -52,7 +52,7 @@ func (h *ChatHandler) SendMessage(c *gin.Context) {
 		return
 	}
 
-	// ✅ Fetch last 20 messages for context
+	// Fetch last 20 messages for context
 	rows, err := h.DB.Query(`
 		SELECT role, content
 		FROM messages
@@ -78,13 +78,13 @@ func (h *ChatHandler) SendMessage(c *gin.Context) {
 		}
 	}
 
-	// ✅ Append new user message
+	// Append new user message
 	history = append(history, openai.ChatCompletionMessage{
 		Role:    "user",
 		Content: req.Content,
 	})
 
-	// ✅ Initialize OpenAI client
+	// Initialize OpenAI client
 	apiKey := os.Getenv("OPENAI_API_KEY")
 	if apiKey == "" {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "missing OPENAI_API_KEY in env"})
@@ -94,7 +94,7 @@ func (h *ChatHandler) SendMessage(c *gin.Context) {
 	client := openai.NewClient(apiKey)
 	ctx := context.Background()
 
-	// ✅ Call GPT-4 model with expanded context
+	// Call GPT-4 model with expanded context
 	resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
 		Model:    "gpt-4o-mini",
 		Messages: history,
@@ -106,7 +106,7 @@ func (h *ChatHandler) SendMessage(c *gin.Context) {
 
 	assistantMessage := resp.Choices[0].Message.Content
 
-	// ✅ Save user message
+	// Save user message
 	var userMsg models.Message
 	err = h.DB.QueryRow(`
 		INSERT INTO messages (chat_id, role, content, created_at)
@@ -122,7 +122,7 @@ func (h *ChatHandler) SendMessage(c *gin.Context) {
 	userMsg.Role = "user"
 	userMsg.Content = req.Content
 
-	// ✅ Save assistant message
+	// Save assistant message
 	var assistantMsg models.Message
 	err = h.DB.QueryRow(`
 		INSERT INTO messages (chat_id, role, content, created_at)
@@ -138,7 +138,7 @@ func (h *ChatHandler) SendMessage(c *gin.Context) {
 	assistantMsg.Role = "assistant"
 	assistantMsg.Content = assistantMessage
 
-	// ✅ Response
+	// Response
 	c.JSON(http.StatusOK, models.MessageResponse{
 		UserMessage:      userMsg,
 		AssistantMessage: assistantMsg,
