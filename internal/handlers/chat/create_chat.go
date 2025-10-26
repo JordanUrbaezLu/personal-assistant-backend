@@ -40,7 +40,7 @@ func (h *ChatHandler) CreateChat(c *gin.Context) {
 		RETURNING id, title, created_at
 	`, userID, title).Scan(&chat.ID, &chat.Title, &chat.CreatedAt)
 	if err != nil {
-		// 👇 Show DB error details (for debugging)
+		// Show DB error details (for debugging)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "db error",
 			"details": err.Error(),
