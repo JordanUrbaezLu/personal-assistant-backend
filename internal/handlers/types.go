@@ -2,17 +2,29 @@ package handlers
 
 import (
 	"database/sql"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// AuthHandler holds DB connection
+// AuthHandler handles authentication-related endpoints.
 type AuthHandler struct {
-	db *sql.DB
+	db           *sql.DB
+	generateJWT  func(userID string, ttl time.Duration) (string, error)
+	getAccessTTL func() time.Duration
+	getRefreshTTL func() time.Duration
+	parseJWT     func(token string) (*Claims, error)
 }
 
+// NewAuthHandler creates a new AuthHandler with default dependencies.
 func NewAuthHandler(db *sql.DB) *AuthHandler {
-	return &AuthHandler{db: db}
+	return &AuthHandler{
+		db:            db,
+		generateJWT:   generateJWT,
+		getAccessTTL:  getAccessTTL,
+		getRefreshTTL: getRefreshTTL,
+		parseJWT:      parseJWT,
+	}
 }
 
 // Signup request payload

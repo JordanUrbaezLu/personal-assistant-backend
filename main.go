@@ -155,7 +155,7 @@ func main() {
 	// 🧩 Misc Routes
 	// =====================================================
 	r.GET("/hello", handlers.HelloHandler)
-	r.GET("/test", handlers.TestHandler)
+	r.GET("/greet", handlers.GreetHandler)
 
 	// =====================================================
 	// 🚀 Start Server

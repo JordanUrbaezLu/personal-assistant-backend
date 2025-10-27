@@ -11,3 +11,6 @@ air
 
 ## Create Swagger Docs
 swag init
+
+## Run Tests
+go test ./internal/handlers -v -cover
