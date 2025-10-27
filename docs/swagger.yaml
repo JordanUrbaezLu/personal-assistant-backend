@@ -311,6 +311,40 @@ paths:
       summary: Send a message in a chat and get AI response
       tags:
       - Chats
+  /greet:
+    get:
+      consumes:
+      - application/json
+      description: Returns a greeting using query parameters `first` and `last`.
+      parameters:
+      - description: First name
+        in: query
+        name: first
+        required: true
+        type: string
+      - description: Last name
+        in: query
+        name: last
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successful greeting
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Missing first or last name
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Greet API to greet user
+      tags:
+      - Misc
   /hello:
     get:
       description: Returns a greeting message. If no name is provided, defaults to
@@ -437,40 +471,6 @@ paths:
       summary: Register a new user
       tags:
       - Auth
-  /test:
-    get:
-      consumes:
-      - application/json
-      description: Returns a greeting using query parameters `first` and `last`.
-      parameters:
-      - description: First name
-        in: query
-        name: first
-        required: true
-        type: string
-      - description: Last name
-        in: query
-        name: last
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Successful greeting
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Missing first or last name
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Test API to greet user
-      tags:
-      - Misc
   /token/refresh:
     post:
       consumes:
