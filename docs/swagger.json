@@ -295,6 +295,57 @@
                 }
             }
         },
+        "/greet": {
+            "get": {
+                "description": "Returns a greeting using query parameters `first` and `last`.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Misc"
+                ],
+                "summary": "Greet API to greet user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "First name",
+                        "name": "first",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Last name",
+                        "name": "last",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful greeting",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Missing first or last name",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/hello": {
             "get": {
                 "description": "Returns a greeting message. If no name is provided, defaults to \"World\".",
@@ -473,57 +524,6 @@
                     },
                     "500": {
                         "description": "Database or hashing error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/test": {
-            "get": {
-                "description": "Returns a greeting using query parameters `first` and `last`.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Misc"
-                ],
-                "summary": "Test API to greet user",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "First name",
-                        "name": "first",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Last name",
-                        "name": "last",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful greeting",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Missing first or last name",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
