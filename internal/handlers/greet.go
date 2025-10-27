@@ -6,8 +6,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// TestHandler godoc
-// @Summary Test API to greet user
+// GreetHandler godoc
+// @Summary Greet API to greet user
 // @Description Returns a greeting using query parameters `first` and `last`.
 // @Tags Misc
 // @Accept  json
@@ -16,8 +16,8 @@ import (
 // @Param last query string true "Last name"
 // @Success 200 {object} map[string]string "Successful greeting"
 // @Failure 400 {object} map[string]string "Missing first or last name"
-// @Router /test [get]
-func TestHandler(c *gin.Context) {
+// @Router /greet [get]
+func GreetHandler(c *gin.Context) {
 	first := c.Query("first")
 	last := c.Query("last")
 

@@ -11,6 +11,9 @@ import (
 	"personal-assistant-backend/internal/models"
 )
 
+// ✅ allow bcrypt mocking in tests
+var bcryptGenerate = bcrypt.GenerateFromPassword
+
 // Signup godoc
 // @Summary Register a new user
 // @Description Creates a new user account in PostgreSQL and returns account info with JWT access + refresh tokens.
@@ -33,8 +36,8 @@ func (h *AuthHandler) Signup(c *gin.Context) {
 		return
 	}
 
-	// Hash password
-	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	// ✅ Use mockable bcrypt wrapper
+	hash, err := bcryptGenerate([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
 		return
@@ -62,26 +65,26 @@ func (h *AuthHandler) Signup(c *gin.Context) {
 		return
 	}
 
-	// Generate tokens
-	accessToken, err := generateJWT(user.ID, getAccessTTL())
+	// ✅ Use injected token functions
+	accessToken, err := h.generateJWT(user.ID, h.getAccessTTL())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create access token"})
 		return
 	}
 
-	refreshToken, err := generateJWT(user.ID, getRefreshTTL())
+	refreshToken, err := h.generateJWT(user.ID, h.getRefreshTTL())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create refresh token"})
 		return
 	}
 
-	// Populate user struct
+	// Populate user fields
 	user.FirstName = req.FirstName
 	user.LastName = req.LastName
 	user.Email = req.Email
 	user.PhoneNumber = req.PhoneNumber
 
-	// Build and return typed response
+	// Typed response
 	response := models.AuthWithTokensResponse{
 		User:         user,
 		AccessToken:  accessToken,

@@ -34,7 +34,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	var user models.User
 	var hash string
 
-	// Fetch user from DB
+	// ✅ Fetch user from DB
 	err := h.db.QueryRow(`
 		SELECT id, first_name, last_name, email, phone_number, password_hash, created_at
 		FROM users WHERE email=$1
@@ -42,7 +42,6 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		&user.ID, &user.FirstName, &user.LastName,
 		&user.Email, &user.PhoneNumber, &hash, &user.CreatedAt,
 	)
-
 	if err != nil {
 		if err == sql.ErrNoRows {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
@@ -52,26 +51,26 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	// Verify password
+	// ✅ Verify password
 	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(req.Password)); err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 		return
 	}
 
-	// Generate tokens
-	accessToken, err := generateJWT(user.ID, getAccessTTL())
+	// ✅ Generate tokens using injected dependencies
+	accessToken, err := h.generateJWT(user.ID, h.getAccessTTL())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create access token"})
 		return
 	}
 
-	refreshToken, err := generateJWT(user.ID, getRefreshTTL())
+	refreshToken, err := h.generateJWT(user.ID, h.getRefreshTTL())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create refresh token"})
 		return
 	}
 
-	// Build response
+	// ✅ Build response
 	response := models.AuthWithTokensResponse{
 		User:         user,
 		AccessToken:  accessToken,

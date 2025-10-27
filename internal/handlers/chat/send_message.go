@@ -11,6 +11,16 @@ import (
 	"personal-assistant-backend/internal/models"
 )
 
+// ✅ Mockable OpenAI client factory (allows test injection)
+var openAIClientFactory = func(apiKey string) openAIClient {
+	return openai.NewClient(apiKey)
+}
+
+// ✅ Interface to mock CreateChatCompletion
+type openAIClient interface {
+	CreateChatCompletion(ctx context.Context, req openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error)
+}
+
 // SendMessage godoc
 // @Summary Send a message in a chat and get AI response
 // @Description Sends a message to a chat. The last 20 messages are sent as context to the AI model.
@@ -52,7 +62,7 @@ func (h *ChatHandler) SendMessage(c *gin.Context) {
 		return
 	}
 
-	// Fetch last 20 messages for context
+	// Fetch last 20 messages
 	rows, err := h.DB.Query(`
 		SELECT role, content
 		FROM messages
@@ -70,7 +80,6 @@ func (h *ChatHandler) SendMessage(c *gin.Context) {
 	for rows.Next() {
 		var role, content string
 		if err := rows.Scan(&role, &content); err == nil {
-			// Prepend oldest first
 			history = append([]openai.ChatCompletionMessage{{
 				Role:    role,
 				Content: content,
@@ -78,23 +87,21 @@ func (h *ChatHandler) SendMessage(c *gin.Context) {
 		}
 	}
 
-	// Append new user message
+	// Append user message
 	history = append(history, openai.ChatCompletionMessage{
 		Role:    "user",
 		Content: req.Content,
 	})
 
-	// Initialize OpenAI client
 	apiKey := os.Getenv("OPENAI_API_KEY")
 	if apiKey == "" {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "missing OPENAI_API_KEY in env"})
 		return
 	}
 
-	client := openai.NewClient(apiKey)
+	client := openAIClientFactory(apiKey)
 	ctx := context.Background()
 
-	// Call GPT-4 model with expanded context
 	resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
 		Model:    "gpt-4o-mini",
 		Messages: history,
@@ -138,7 +145,6 @@ func (h *ChatHandler) SendMessage(c *gin.Context) {
 	assistantMsg.Role = "assistant"
 	assistantMsg.Content = assistantMessage
 
-	// Response
 	c.JSON(http.StatusOK, models.MessageResponse{
 		UserMessage:      userMsg,
 		AssistantMessage: assistantMsg,

@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
+
 // Refresh godoc
 // @Summary Refresh access token
 // @Description Takes a valid refresh token and issues a new access token. The refresh token remains the same.
@@ -24,13 +25,15 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		return
 	}
 
-	claims, err := parseJWT(body.RefreshToken)
+	// ✅ use handler’s injected parseJWT
+	claims, err := h.parseJWT(body.RefreshToken)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid refresh token"})
 		return
 	}
 
-	accessToken, err := generateJWT(claims.UserID, getAccessTTL())
+	// ✅ use handler’s injected generateJWT + TTL getter
+	accessToken, err := h.generateJWT(claims.UserID, h.getAccessTTL())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create access token"})
 		return
@@ -41,5 +44,3 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		"refresh_token": body.RefreshToken,
 	})
 }
-
-
