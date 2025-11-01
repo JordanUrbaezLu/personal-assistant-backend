@@ -223,17 +223,17 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Sends a message to a chat. The last 20 messages are sent as context to the AI model.",
+                "description": "Sends a message to a chat. The last 20 messages are sent as context to the AI model, and tokens stream back in real time.",
                 "consumes": [
                     "application/json"
                 ],
                 "produces": [
-                    "application/json"
+                    "text/event-stream"
                 ],
                 "tags": [
                     "Chats"
                 ],
-                "summary": "Send a message in a chat and get AI response",
+                "summary": "Send a message in a chat and stream AI response",
                 "parameters": [
                     {
                         "type": "string",
@@ -254,9 +254,9 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Streamed AI response",
                         "schema": {
-                            "$ref": "#/definitions/models.MessageResponse"
+                            "type": "string"
                         }
                     },
                     "400": {
@@ -739,17 +739,6 @@ const docTemplate = `{
                 "role": {
                     "description": "\"user\" or \"assistant\"",
                     "type": "string"
-                }
-            }
-        },
-        "models.MessageResponse": {
-            "type": "object",
-            "properties": {
-                "assistant_message": {
-                    "$ref": "#/definitions/models.Message"
-                },
-                "user_message": {
-                    "$ref": "#/definitions/models.Message"
                 }
             }
         },
