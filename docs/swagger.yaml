@@ -92,13 +92,6 @@ definitions:
         description: '"user" or "assistant"'
         type: string
     type: object
-  models.MessageResponse:
-    properties:
-      assistant_message:
-        $ref: '#/definitions/models.Message'
-      user_message:
-        $ref: '#/definitions/models.Message'
-    type: object
   models.SendMessageReq:
     properties:
       content:
@@ -262,7 +255,7 @@ paths:
       consumes:
       - application/json
       description: Sends a message to a chat. The last 20 messages are sent as context
-        to the AI model.
+        to the AI model, and tokens stream back in real time.
       parameters:
       - description: Chat ID
         in: path
@@ -276,12 +269,12 @@ paths:
         schema:
           $ref: '#/definitions/models.SendMessageReq'
       produces:
-      - application/json
+      - text/event-stream
       responses:
         "200":
-          description: OK
+          description: Streamed AI response
           schema:
-            $ref: '#/definitions/models.MessageResponse'
+            type: string
         "400":
           description: Invalid payload
           schema:
@@ -308,7 +301,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Send a message in a chat and get AI response
+      summary: Send a message in a chat and stream AI response
       tags:
       - Chats
   /greet:
