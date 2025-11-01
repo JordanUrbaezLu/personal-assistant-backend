@@ -2,6 +2,9 @@ package chat
 
 import (
 	"context"
+	"crypto/tls"
+	"errors"
+	"io"
 	"net/http"
 	"os"
 	"time"
@@ -11,26 +14,35 @@ import (
 	"personal-assistant-backend/internal/models"
 )
 
-// ✅ Mockable OpenAI client factory (allows test injection)
-var openAIClientFactory = func(apiKey string) openAIClient {
-	return openai.NewClient(apiKey)
+// ✅ Interface for streaming client
+type openAIStreamClient interface {
+	CreateChatCompletionStream(ctx context.Context, req openai.ChatCompletionRequest) (*openai.ChatCompletionStream, error)
 }
 
-// ✅ Interface to mock CreateChatCompletion
-type openAIClient interface {
-	CreateChatCompletion(ctx context.Context, req openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error)
+// ✅ Factory (mockable + TLS-safe)
+var openAIStreamFactory = func(apiKey string) openAIStreamClient {
+	config := openai.DefaultConfig(apiKey)
+	config.HTTPClient = &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: false, // ✅ verifies properly if ca-certificates are installed
+			},
+		},
+		Timeout: 0, // allow long-lived connections for streaming
+	}
+	return openai.NewClientWithConfig(config)
 }
 
 // SendMessage godoc
-// @Summary Send a message in a chat and get AI response
-// @Description Sends a message to a chat. The last 20 messages are sent as context to the AI model.
+// @Summary Send a message in a chat and stream AI response
+// @Description Sends a message to a chat. The last 20 messages are sent as context to the AI model, and tokens stream back in real time.
 // @Tags Chats
 // @Security BearerAuth
 // @Accept json
-// @Produce json
+// @Produce text/event-stream
 // @Param chat_id path string true "Chat ID"
 // @Param payload body models.SendMessageReq true "User message content"
-// @Success 200 {object} models.MessageResponse
+// @Success 200 {string} string "Streamed AI response"
 // @Failure 400 {object} map[string]string "Invalid payload"
 // @Failure 401 {object} map[string]string "Unauthorized"
 // @Failure 404 {object} map[string]string "Chat not found"
@@ -87,7 +99,7 @@ func (h *ChatHandler) SendMessage(c *gin.Context) {
 		}
 	}
 
-	// Append user message
+	// Append new user message
 	history = append(history, openai.ChatCompletionMessage{
 		Role:    "user",
 		Content: req.Content,
@@ -99,21 +111,26 @@ func (h *ChatHandler) SendMessage(c *gin.Context) {
 		return
 	}
 
-	client := openAIClientFactory(apiKey)
+	client := openAIStreamFactory(apiKey)
 	ctx := context.Background()
 
-	resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
+	stream, err := client.CreateChatCompletionStream(ctx, openai.ChatCompletionRequest{
 		Model:    "gpt-4o-mini",
 		Messages: history,
+		Stream:   true,
 	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "model error", "details": err.Error()})
 		return
 	}
+	defer stream.Close()
 
-	assistantMessage := resp.Choices[0].Message.Content
+	// Set SSE headers for streaming
+	c.Header("Content-Type", "text/event-stream")
+	c.Header("Cache-Control", "no-cache")
+	c.Header("Connection", "keep-alive")
 
-	// Save user message
+	// Save user message before streaming
 	var userMsg models.Message
 	err = h.DB.QueryRow(`
 		INSERT INTO messages (chat_id, role, content, created_at)
@@ -125,28 +142,48 @@ func (h *ChatHandler) SendMessage(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save user message"})
 		return
 	}
+
 	userMsg.ChatID = chatID
 	userMsg.Role = "user"
 	userMsg.Content = req.Content
 
-	// Save assistant message
-	var assistantMsg models.Message
-	err = h.DB.QueryRow(`
-		INSERT INTO messages (chat_id, role, content, created_at)
-		VALUES ($1, 'assistant', $2, $3)
-		RETURNING id, created_at
-	`, chatID, assistantMessage, time.Now()).
-		Scan(&assistantMsg.ID, &assistantMsg.CreatedAt)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save assistant message"})
-		return
-	}
-	assistantMsg.ChatID = chatID
-	assistantMsg.Role = "assistant"
-	assistantMsg.Content = assistantMessage
+	// Stream assistant response tokens to client
+	var fullResponse string
+	c.Stream(func(w io.Writer) bool {
+		for {
+			resp, err := stream.Recv()
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			if err != nil {
+				c.SSEvent("error", err.Error())
+				return false
+			}
 
-	c.JSON(http.StatusOK, models.MessageResponse{
-		UserMessage:      userMsg,
-		AssistantMessage: assistantMsg,
+			if len(resp.Choices) > 0 {
+				delta := resp.Choices[0].Delta.Content
+				if delta != "" {
+					fullResponse += delta
+					c.SSEvent("message", delta)
+				}
+			}
+		}
+
+		// Save assistant message once stream finishes
+		var assistantMsg models.Message
+		err = h.DB.QueryRow(`
+			INSERT INTO messages (chat_id, role, content, created_at)
+			VALUES ($1, 'assistant', $2, $3)
+			RETURNING id, created_at
+		`, chatID, fullResponse, time.Now()).
+			Scan(&assistantMsg.ID, &assistantMsg.CreatedAt)
+		if err == nil {
+			assistantMsg.ChatID = chatID
+			assistantMsg.Role = "assistant"
+			assistantMsg.Content = fullResponse
+		}
+
+		c.SSEvent("done", "[DONE]")
+		return false
 	})
 }
