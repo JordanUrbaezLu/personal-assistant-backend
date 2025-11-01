@@ -2,19 +2,30 @@
 # 🧠 personal-assistant-backend-fly
 # Production-ready Fly.io config for a multi-region Go API
 # =========================================================
+# Primary Region: SJC (San Jose, CA)
+# Secondary Region: EWR (Secaucus, NJ)
+#
+# This setup ensures:
+#  - Low latency for both US coasts
+#  - Zero cold starts
+#  - Auto-routing via Fly’s Anycast global network
+# =========================================================
+
 app = "personal-assistant-backend-fly"
 primary_region = "sjc"
 
 [build]
-  # Your Dockerfile handles Go build
-  # (no changes needed)
+  # Optional: Install swag CLI in Dockerfile if Swagger auto-generation is required.
+  # Example in Dockerfile:
+  # RUN go install github.com/swaggo/swag/cmd/swag@latest
 
 [deploy]
   # 🟢 Enable rolling deploys across ALL regions
   # This ensures every running machine (in all regions) gets replaced.
   strategy = "rolling"
-
-  # Optional: Run swag docs before release (disabled for speed)
+  
+  # Optionally regenerate Swagger docs before deploying.
+  # Commented out to speed up deployments.
   # release_command = "swag init -g main.go -o docs"
 
 # =========================================================
@@ -24,15 +35,12 @@ primary_region = "sjc"
   internal_port = 8080
   force_https = true
 
-  # Keep both regions warm (no cold starts)
+  # Keep instances always running — prevents cold starts
   auto_stop_machines = false
   auto_start_machines = true
 
-  # Ensure both SJC and EWR always have an active instance
+  # Run at least one machine per region
   min_machines_running = 2
-
-  # Rolling deploy safety: restart one region at a time
-  max_concurrent_startups = 1
 
   processes = ["app"]
 
@@ -45,14 +53,24 @@ primary_region = "sjc"
   cpus = 1
 
 # =========================================================
-# 🌎 Regional Deployment
+# 🌎 Notes for Multi-Region Deployment
 # =========================================================
-# Fly will deploy to both SJC (primary) and EWR (secondary)
-# because you already have machines in both regions.
+# - Current Regions:
+#     - sjc (San Jose, CA)  → Primary
+#     - ewr (Secaucus, NJ) → Secondary (East Coast)
 #
-# You can confirm this mapping via:
-#   fly regions list
+# - To add more regions:
+#     1. fly machines list
+#     2. fly machine clone <machine_id> --region <new_region>
 #
-# If a new region is ever added manually, Fly will also
-# update those on the next deploy.
+# - To verify routing:
+#     curl -I https://personal-assistant-backend-fly.fly.dev
+#     → Look for `fly-request-id:` ****-(sjc, ewr)
+#
+# - To scale more instances per region:
+#     fly scale count app=auto
+#
+# - To remove unused or stopped machines:
+#     fly machine remove <machine_id>
+#
 # =========================================================
