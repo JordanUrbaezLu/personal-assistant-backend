@@ -20,6 +20,10 @@ primary_region = "sjc"
   # RUN go install github.com/swaggo/swag/cmd/swag@latest
 
 [deploy]
+  # 🟢 Enable rolling deploys across ALL regions
+  # This ensures every running machine (in all regions) gets replaced.
+  strategy = "rolling"
+  
   # Optionally regenerate Swagger docs before deploying.
   # Commented out to speed up deployments.
   # release_command = "swag init -g main.go -o docs"
