@@ -150,6 +150,7 @@ func main() {
 	authGroup.GET("/chats", chats.ListChats)
 	authGroup.POST("/chats/:chat_id/messages", chats.SendMessage)
 	authGroup.GET("/chats/:chat_id/messages", chats.ListMessages)
+	authGroup.DELETE("/chats/:chat_id", chats.DeleteChat)
 
 	// =====================================================
 	// 🧩 Misc Routes

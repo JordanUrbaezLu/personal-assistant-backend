@@ -13,4 +13,5 @@ air
 swag init
 
 ## Run Tests
-go test ./internal/handlers -v -cover
+go test ./internal/handlers/... -v -cover
+
