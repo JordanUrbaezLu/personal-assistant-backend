@@ -115,7 +115,7 @@ func (h *ChatHandler) SendMessage(c *gin.Context) {
 	ctx := context.Background()
 
 	stream, err := client.CreateChatCompletionStream(ctx, openai.ChatCompletionRequest{
-		Model:    "gpt-4o-mini",
+		Model:    "gpt-5-chat-latest",
 		Messages: history,
 		Stream:   true,
 	})
