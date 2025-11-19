@@ -210,6 +210,41 @@ paths:
       summary: Create a new chat
       tags:
       - Chats
+  /chats/{chat_id}:
+    delete:
+      description: Deletes a chat if it belongs to the logged-in user.
+      parameters:
+      - description: Chat ID
+        in: path
+        name: chat_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Chat deleted
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Chat not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Database error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a chat
+      tags:
+      - Chats
   /chats/{chat_id}/messages:
     get:
       description: Returns the full conversation history for a given chat ID.
